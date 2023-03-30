@@ -6,10 +6,10 @@ const { assert, expect } = require("chai")
 
 !developmentChains.includes(network.name)
     ? describe.skip
-    : describe("ERC20 Standard Implementation Tests", async function () {
+    : describe("Subscription Implementation Tests", async function () {
           //set log level to ignore non errors
-          let ERC20
-          let token
+          //let ERC20
+          //let token
           let deployer
           ethers.utils.Logger.setLogLevel(ethers.utils.Logger.levels.ERROR)
 

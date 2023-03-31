@@ -3,54 +3,104 @@
 
 pragma solidity ^0.8.0;
 
-// Reward Token For Redeeming ERC20 Rewards
-// 1. Standard ERC20 Library
-// 2. Seperate Balance mapping => _grantedBalance
-// 3. Seperate Claim Function => allows one to redeem _grantedBalance to ERC20Reward balance
-// 4. Admins can clear => _grantedBalance => to expire claim on erc20
-// 5. Admin sets and clears _grantedBalance
-// 6. Test it
+// Subscription Monthly Payment Contract
+// 1. Contract is controlled by gelato service
+// 2. Monthly Epoch is incremented for eternity by gelato service or manually -> if manually, a delay in updating updateEpoch only allows customers to get more time for what they paid
+// 3. A check can be done on the delta of monthly epoch from month of origination
+// 4.
 
-// 2. Imports
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import "@openzeppelin/contracts/utils/Context.sol";
-
-/**
- * @dev Implementation of the {IERC20} interface.
- *
- * This implementation is agnostic to the way tokens are created. This means
- * that a supply mechanism has to be added in a derived contract using {_mint}.
- * For a generic mechanism see {ERC20PresetMinterPauser}.
- *
- * TIP: For a detailed writeup see our guide
- * https://forum.zeppelin.solutions/t/how-to-implement-erc20-supply-mechanisms/226[How
- * to implement supply mechanisms].
- *
- * We have followed general OpenZeppelin Contracts guidelines: functions revert
- * instead returning `false` on failure. This behavior is nonetheless
- * conventional and does not conflict with the expectations of ERC20
- * applications.
- *
- * Additionally, an {Approval} event is emitted on calls to {transferFrom}.
- * This allows applications to reconstruct the allowance for all accounts just
- * by listening to said events. Other implementations of the EIP may not emit
- * these events, as it isn't required by the specification.
- *
- * Finally, the non-standard {decreaseAllowance} and {increaseAllowance}
- * functions have been added to mitigate the well-known issues around setting
- * allowances. See {IERC20-approve}.
- */
 contract Subscription {
     //State Variables
     address private immutable i_owner;
+    //For Reference
+    uint256 immutable i_start;
+    // Let a grace period exist allowing a subscriptionoor to game 2 months for price of 1
+    bool lenient = false;
+    // Payment Type - dynamic to discourage gaming and prioritizing upfront payment or let gaming be possible
+    bool dynamic = true;
+    // Monthly Epoch
+    uint256 epoch;
+    mapping(address => uint256) epochPaid;
 
     modifier onlyOwner() {
         require(msg.sender == i_owner, "Only owner can call this function.");
         _;
     }
 
+    //epoch starts at period 1
     constructor() {
         i_owner = msg.sender;
+        epoch = 0;
+        i_start = block.timestamp;
+    }
+
+    function updateEpoch() public onlyOwner {
+        epoch += 1;
+    }
+
+    function takePayment(address _recievooor, uint256 _periods) public {
+        if (!dynamic) {
+            _makePayment(_recievooor, _periods);
+        } else {
+            _makePricePayment(_recievooor, _periods);
+        }
+    }
+
+    function _makePayment(
+        address _recievooor,
+        uint256 _periods
+    ) internal payable {
+        uint value = 1 ether * _periods;
+        require(msg.value >= value, "not enough ether submitted");
+        // EpochPaid updated to epoch + 1 on minimum paid; user can game system letting the second epoch month expire then paying the 3rd epoch
+        // A user paying inside of the middle or end of the month benefits positively from this
+        // Ideally a user for convience will pay a several months ahead of time or years
+        // A pricing mechanism can be added here to highly discourage gaming like a 2X price increase on 1-2 month payments
+        epochPaid[_recievooor] = epoch + _periods;
+    }
+
+    function _dynamicPricePayment(
+        address _recievooor,
+        uint256 _periods
+    ) internal payable {
+        if (_periods > 3) {
+            uint value = 1 ether * _periods;
+            require(msg.value >= value, "not enough ether submitted");
+            // EpochPaid updated to epoch + 1 on minimum paid; user can game system letting the second epoch month expire then paying the 3rd epoch
+            // A user paying inside of the middle or end of the month benefits positively from this
+            // Ideally a user for convience will pay a several months ahead of time or years
+            // A pricing mechanism can be added here to highly discourage gaming like a 2X price increase on 1-2 month payments
+            epochPaid[_recievooor] = epoch + _periods;
+        } else {
+            uint valueDoubler = 2 ether * _periods;
+            require(msg.value >= valueDoubler, "not enough ether submitted");
+            epochPaid[_recievooor] = epoch + _periods;
+        }
+    }
+
+    function checkSubscription() public view returns (bool) {
+        if (!lenient) {
+            if (epochPaid[msg.sender] >= epoch) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            if (epochPaid[msg.sender] >= epoch - 1) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    function changeGracePeriod(bool _passed) public onlyOwner returns (bool) {
+        lenient = _passed;
+        return lenient;
+    }
+
+    function changePaymentStyle(bool _passed) public onlyOwner returns (bool) {
+        dynamic = _passed;
+        return dynamic;
     }
 }

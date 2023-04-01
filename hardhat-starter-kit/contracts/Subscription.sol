@@ -46,6 +46,12 @@ contract Subscription {
         s_priceFeed = AggregatorV3Interface(priceFeed);
     }
 
+    function getLatestPrice() public view returns (int256) {
+        (, int256 answer, , , ) = s_priceFeed.latestRoundData();
+        // ETH/USD rate in 18 digit
+        return answer;
+    }
+
     function updateEpoch() public onlyOwner {
         epoch += 1;
     }
@@ -142,5 +148,9 @@ contract Subscription {
         address _recievooor
     ) public view returns (uint256) {
         return epochPaid[_recievooor];
+    }
+
+    function getPriceFeed() public view returns (AggregatorV3Interface) {
+        return s_priceFeed;
     }
 }

@@ -13,8 +13,8 @@ const { assert, expect } = require("chai")
           let deployer
           let mockV3Aggregator
           let mockV3AggregatorFactory
-          ethers.utils.Logger.setLogLevel(ethers.utils.Logger.levels.ERROR)
-          const oneThousandthETHER = ethers.utils.parseEther(0.0001)
+          //ethers.utils.Logger.setLogLevel(ethers.utils.Logger.levels.ERROR)
+          //const oneThousandthETHER = ethers.utils.parseEther(0.0001)
           // We define a fixture to reuse the same setup in every test.
           // We use loadFixture to run this setup once, snapshot that state,
           // and reset Hardhat Network to that snapshot in every test.
@@ -29,27 +29,31 @@ const { assert, expect } = require("chai")
 
               return { ERC20 }
           }*/
-          beforeEach(async () => {
+          async function deployContractAndPrice() {
               // const accounts = await ethers.getSigners()
               const [aDeployer] = await ethers.getSigners()
-              deployer = aDeployer
               const DECIMALS = "18"
               const INITIAL_PRICE = "200000000000000000000"
 
               mockV3AggregatorFactory = await ethers.getContractFactory("MockV3Aggregator")
               mockV3Aggregator = await mockV3AggregatorFactory
-                  .connect(deployer)
+                  .connect(aDeployer)
                   .deploy(DECIMALS, INITIAL_PRICE)
 
               subscriptionFactory = await ethers.getContractFactory("Subscription")
               Subscription = await subscriptionFactory
-                  .connect(deployer)
-                  .deploy("10", mockV3Aggregator.address)
-          })
+                  .connect(aDeployer)
+                  .deploy(10, mockV3Aggregator.address)
+
+              return { Subscription, mockV3Aggregator }
+          }
 
           describe("Contract Functionality", async function () {
               describe("Pricing Oracle Working Correctly", async function () {
                   it("Should run a redundant test", async function () {
+                      const { subscription, mockV3Aggregator } = await loadFixture(
+                          deployContractAndPrice
+                      )
                       assert.equal(1, 1)
                   })
               })

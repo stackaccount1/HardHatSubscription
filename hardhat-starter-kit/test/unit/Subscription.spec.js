@@ -79,9 +79,17 @@ const { assert, expect } = require("chai")
                       const etheruemUnitsOfUSD = await Subscription.getOneEthPriceTest()
                       assert.equal(200, etheruemUnitsOfUSD.toString())
                   })
+                  it("It should return .05 ETH for subscription fee", async () => {
+                      let pointZeroFive = ethers.utils.parseEther(".05")
+                      const { Subscription, mockV3Aggregator } = await loadFixture(
+                          deployContractAndPrice
+                      )
+                      const etheruemUnitsOfUSD = await Subscription.getResultOfConversion()
+                      assert.equal(pointZeroFive.toString(), etheruemUnitsOfUSD.toString())
+                  })
 
                   it("A subscription should revert if you send to little ether", async () => {
-                      let oneTenThousandthETHER = ethers.utils.parseEther("0.000001") // 2 cents
+                      let oneTenThousandthETHER = ethers.utils.parseEther("0.04") // 2 cents
                       const { Subscription, mockV3Aggregator } = await loadFixture(
                           deployContractAndPrice
                       )

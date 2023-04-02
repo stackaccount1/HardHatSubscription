@@ -99,6 +99,17 @@ const { assert, expect } = require("chai")
                           })
                       ).to.be.revertedWith("not enough ether submitted")
                   })
+                  it("A subscription should not revert if you send the correct ether and correctly log the epochs", async () => {
+                      let pointTwo = ethers.utils.parseEther("0.2") // 2 cents
+                      const { Subscription, mockV3Aggregator } = await loadFixture(
+                          deployContractAndPrice
+                      )
+                      const response = await Subscription.takePayment(deployer.address, 4, {
+                          value: pointTwo,
+                      })
+                      const epochCheck = await Subscription.readSubscribersEpoch(deployer.address)
+                      assert.equal(epochCheck.toString(), 4)
+                  })
               })
           })
       })

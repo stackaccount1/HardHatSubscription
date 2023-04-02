@@ -11,21 +11,18 @@ pragma solidity ^0.8.0;
 
 // 2. Imports
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import "./PriceConverter.sol";
 
 contract Subscription {
     //Type Declarations
-    using PriceConverter for uint256;
-    // *price converter
     //State Variables
     address private immutable i_owner;
     uint256 immutable i_start;
-    uint256 epoch;
-    uint256 usdPrice;
+    int256 epoch;
+    int256 usdPrice;
     bool lenient = false;
     bool dynamic = true;
     // epochPaid   address => epochPaid    Customer => Epoch Period Paid Till
-    mapping(address => uint256) epochPaid;
+    mapping(address => int256) epochPaid;
     AggregatorV3Interface private s_priceFeed;
 
     //Events
@@ -37,7 +34,7 @@ contract Subscription {
     }
 
     //epoch starts at 0
-    constructor(uint256 _initialSubPrice, address priceFeed) {
+    constructor(int256 _initialSubPrice, address priceFeed) {
         i_owner = msg.sender;
         epoch = 0;
         i_start = block.timestamp;
@@ -66,7 +63,7 @@ contract Subscription {
         epoch += 1;
     }
 
-    function takePayment(address _recievooor, uint256 _periods) public payable {
+    function takePayment(address _recievooor, int256 _periods) public payable {
         if (!dynamic) {
             _makePayment(_recievooor, _periods);
         } else {
@@ -74,12 +71,16 @@ contract Subscription {
         }
     }
 
-    function _makePayment(address _recievooor, uint256 _periods) internal {
-        uint value = usdPrice * _periods;
-        require(
-            msg.value.getConversionRate(s_priceFeed) >= value,
-            "not enough ether submitted"
-        );
+    function conversion() public returns (int) {
+        int ethPriceUSD = getLatestPrice() * 10 ** 18;
+        int minRequiredUSD = usdPrice * 10 ** 18;
+        int minRequiredEther = (minRequiredUSD * 10 ** 18) / ethPriceUSD;
+        return minRequiredEther;
+    }
+
+    function _makePayment(address _recievooor, int256 _periods) internal {
+        int priceInEth = conversion() * _periods;
+        require(int(msg.value) >= priceInEth, "not enough ether submitted");
         // EpochPaid updated to epoch + 1 on minimum paid; user can game system letting the second epoch month expire then paying at the beginning the 3rd epoch, extending through to 4 epochs for the price of two
         // A user paying inside of the middle or end of the month benefits positively from this lets say gets a month and a half for the price of one if paid on the 15th
         // Ideally a user will pay several months ahead of time or years for convienence
@@ -91,24 +92,18 @@ contract Subscription {
 
     function _dynamicPricePayment(
         address _recievooor,
-        uint256 _periods
+        int256 _periods
     ) internal {
         if (_periods > 3) {
-            uint value = usdPrice * _periods;
-            require(
-                msg.value.getConversionRate(s_priceFeed) >= value,
-                "not enough ether submitted"
-            );
+            int priceInEth = conversion() * _periods;
+            require(int(msg.value) >= priceInEth, "not enough ether submitted");
             epochPaid[_recievooor] = epoch + _periods;
         } else {
             // Making a payment <3 will result in double the cost
             // For simplicity this seems as the best idea than trying to figure timing inside the contract
             // pricing should be adjusted accordingly for the loss of 1 month every 4 if the customer is paying every 4 months on the end of the fifth month after expiry of epoch..........
-            uint valueDoubler = 2 * usdPrice * _periods;
-            require(
-                msg.value.getConversionRate(s_priceFeed) >= valueDoubler,
-                "not enough ether submitted"
-            );
+            int priceInEth = conversion() * _periods * 2;
+            require(int(msg.value) >= priceInEth, "not enough ether submitted");
             epochPaid[_recievooor] = epoch + _periods;
         }
     }
@@ -140,31 +135,34 @@ contract Subscription {
     }
 
     function changePrice(
-        uint _priceInUsdTerms
-    ) public onlyOwner returns (uint256) {
+        int _priceInUsdTerms
+    ) public onlyOwner returns (int256) {
         usdPrice = _priceInUsdTerms;
         return usdPrice;
     }
 
-    function readMyEpochussy() public view returns (uint256) {
+    function readMyEpochussy() public view returns (int256) {
         return epochPaid[msg.sender];
     }
 
-    function readCurrentEpoch() public view returns (uint256) {
+    function readCurrentEpoch() public view returns (int256) {
         return epoch;
     }
 
     function readSubscribersEpoch(
         address _recievooor
-    ) public view returns (uint256) {
+    ) public view returns (int256) {
         return epochPaid[_recievooor];
     }
 
-    function getOneEthPriceTest() public payable returns (uint256) {
-        return msg.value.getConversionRate(s_priceFeed);
+    function getOneEthPriceTest() public view returns (int256) {
+        int ethPriceUSD = getLatestPrice() * 10 ** 18;
+        int minUSD = 1 * 10 ** 18;
+        int usdEthTerms = ethPriceUSD / (minUSD * 10 ** 18);
+        return usdEthTerms;
     }
 
-    //function getPriceFeed() public view returns (AggregatorV3Interface) {
-    //    return s_priceFeed;
-    //}
+    function getPriceFeed() public view returns (address) {
+        return address(s_priceFeed);
+    }
 }

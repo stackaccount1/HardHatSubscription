@@ -16,11 +16,10 @@ library PriceConverter {
     // call it get fiatConversionRate, since it assumes something about decimals
     // It wouldn't work for every aggregator
     function getConversionRate(
-        uint256 ethAmount,
         AggregatorV3Interface priceFeed
     ) internal view returns (uint256) {
         uint256 ethPrice = getPrice(priceFeed);
-        uint256 ethAmountInUsd = (ethPrice * ethAmount) / 1000000000000000000;
+        uint256 ethAmountInUsd = (ethPrice * msg.value) / 1000000000000000000;
         // the actual ETH/USD conversation rate, after adjusting the extra 0s.
         return ethAmountInUsd;
     }

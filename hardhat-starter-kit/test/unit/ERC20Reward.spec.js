@@ -2,7 +2,7 @@ const { network, deployments, ethers } = require("hardhat")
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers")
 const { networkConfig, developmentChains } = require("../../helper-hardhat-config")
 const { numToBytes32 } = require("../../helper-functions")
-const { assert, expect } = require("chai")
+const { assert, expect, revertedWith } = require("chai")
 
 !developmentChains.includes(network.name)
     ? describe.skip
@@ -13,6 +13,8 @@ const { assert, expect } = require("chai")
           let deployer
           let mockV3Aggregator
           let mockV3AggregatorFactory
+          //onst oneThousandthETHER = ethers.utils.parseEther(0.0001)
+          //const oneEthereumKoin = ethers.utils.parseEther(1)
           //ethers.utils.Logger.setLogLevel(ethers.utils.Logger.levels.ERROR)
           //const oneThousandthETHER = ethers.utils.parseEther(0.0001)
           // We define a fixture to reuse the same setup in every test.
@@ -50,11 +52,39 @@ const { assert, expect } = require("chai")
 
           describe("Contract Functionality", async function () {
               describe("Pricing Oracle Working Correctly", async function () {
-                  it("Should run a redundant test", async function () {
-                      const { subscription, mockV3Aggregator } = await loadFixture(
+                  it("It should set the aggregator address correctly", async () => {
+                      const { Subscription, mockV3Aggregator } = await loadFixture(
                           deployContractAndPrice
                       )
-                      assert.equal(1, 1)
+                      const aResponse = await Subscription.getPriceFeed()
+                      assert.equal(aResponse, mockV3Aggregator.address)
+                  })
+                  it("It should return the same value as the mock", async () => {
+                      const { Subscription, mockV3Aggregator } = await loadFixture(
+                          deployContractAndPrice
+                      )
+                      const priceConsumerResult = await Subscription.getLatestPrice()
+                      const priceFeedResult = (await mockV3Aggregator.latestRoundData()).answer
+                      assert.equal(priceConsumerResult.toString(), priceFeedResult.toString())
+                  })
+                  it("It should return $2000 per one Ethereum koin", async () => {
+                      const { Subscription, mockV3Aggregator } = await loadFixture(
+                          deployContractAndPrice
+                      )
+                      const etheruemUnitsOfUSD = await Subscription.getOneEthPriceTest({
+                          value: oneEthereumKoin,
+                      })
+                      assert.equal("2000", etheruemUnitsOfUSD.toString())
+                  })
+                  it("A subscription should revert if you send to little ether", async () => {
+                      const { Subscription, mockV3Aggregator } = await loadFixture(
+                          deployContractAndPrice
+                      )
+                      await expect(
+                          Subscription.takePayment(deployer.address, 1, {
+                              value: oneThousandthETHER,
+                          })
+                      ).to.be.revertedWith("not enough ether submitted")
                   })
               })
           })

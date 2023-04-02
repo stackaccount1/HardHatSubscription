@@ -20,22 +20,9 @@ async function deploySubscription(chainId) {
         priceFeedAddress = networkConfig[chainId]["ethUsdPriceFeed"]
     }
 
-    const subscriptionFactory = await ethers.getContractFactory("PriceConsumerV3")
+    const subscriptionFactory = await ethers.getContractFactory("Subscription")
     const Subscription = await subscriptionFactory.deploy(10, priceFeedAddress)
-
-    const waitBlockConfirmations = developmentChains.includes(network.name)
-        ? 1
-        : VERIFICATION_BLOCK_CONFIRMATIONS
-    await priceConsumerV3.deployTransaction.wait(waitBlockConfirmations)
-
-    console.log(`ETH/USD Price Consumer deployed to ${priceConsumerV3.address} on ${network.name}`)
-
-    if (!developmentChains.includes(network.name) && process.env.ETHERSCAN_API_KEY) {
-        await run("verify:verify", {
-            address: priceConsumerV3.address,
-            constructorArguments: [priceFeedAddress],
-        })
-    }
+    console.log(`Subscription deployed to ${Subscription.address} on ${network.name}`)
 }
 
 module.exports = {

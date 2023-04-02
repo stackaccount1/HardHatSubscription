@@ -14,6 +14,7 @@ const {
     deployRandomNumberDirectFundingConsumer,
 } = require("./deployRandomNumberDirectFundingConsumer")
 const { deployERC20 } = require("./deployERC20")
+const { deploySubscription } = require("./deploySubscription")
 
 async function main() {
     await run("compile")
@@ -21,7 +22,8 @@ async function main() {
     await deployApiConsumer(chainId)
     await deployERC20()
     await deployAutomationCounter(chainId)
-    await deployPriceConsumerV3(chainId)
+    //await deployPriceConsumerV3(chainId)
+    await deploySubscription(chainId)
     await deployRandomNumberConsumer(chainId)
     await deployRandomNumberDirectFundingConsumer(chainId)
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.7.0) (token/ERC20/ERC20.sol)
 
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.0;
 
 // Subscription Monthly Payment Contract
 // -> Contract is controlled by chainlink keepers
@@ -14,24 +14,23 @@ import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "./PriceConverter.sol";
 
 contract Subscription {
+    //Type Declarations
     using PriceConverter for uint256;
+    // *price converter
     //State Variables
     address private immutable i_owner;
-    //For Reference
     uint256 immutable i_start;
-    // Let a grace period exist allowing a subscriptionoor to game 2 months for price of 1
-    bool lenient = false;
-    // Payment Type - dynamic to discourage gaming and prioritizing upfront payment or let gaming be possible
-    bool dynamic = true;
-    // Monthly Epoch
     uint256 epoch;
+    uint256 usdPrice;
+    bool lenient = false;
+    bool dynamic = true;
     // epochPaid   address => epochPaid    Customer => Epoch Period Paid Till
     mapping(address => uint256) epochPaid;
-    // usd pricing
-    uint usdPrice;
-    //comment
     AggregatorV3Interface private s_priceFeed;
 
+    //Events
+    event Received(address, uint256);
+    //Modifiers
     modifier onlyOwner() {
         require(msg.sender == i_owner, "Only owner can call this function.");
         _;
@@ -45,6 +44,17 @@ contract Subscription {
         usdPrice = _initialSubPrice;
         s_priceFeed = AggregatorV3Interface(priceFeed);
     }
+
+    //recieve
+    receive() external payable {
+        emit Received(msg.sender, msg.value);
+    }
+
+    //fallback
+    //external
+    //public
+    //ABI
+    //Address
 
     function getLatestPrice() public view returns (int256) {
         (, int256 answer, , , ) = s_priceFeed.latestRoundData();
@@ -150,7 +160,11 @@ contract Subscription {
         return epochPaid[_recievooor];
     }
 
-    function getPriceFeed() public view returns (AggregatorV3Interface) {
-        return s_priceFeed;
+    function getOneEthPriceTest() public payable returns (uint256) {
+        return msg.value.getConversionRate(s_priceFeed);
     }
+
+    //function getPriceFeed() public view returns (AggregatorV3Interface) {
+    //    return s_priceFeed;
+    //}
 }

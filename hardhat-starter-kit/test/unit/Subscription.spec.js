@@ -108,7 +108,244 @@ const { assert, expect } = require("chai")
                           value: pointTwo,
                       })
                       const epochCheck = await Subscription.readSubscribersEpoch(deployer.address)
-                      assert.equal(epochCheck.toString(), 4)
+                      assert.equal(epochCheck.toString(), 5)
+                  })
+              })
+              describe("Epoch Logic", async function () {
+                  it("It should return 0 when no payment was rendered to the contract intially", async () => {
+                      const { Subscription, mockV3Aggregator } = await loadFixture(
+                          deployContractAndPrice
+                      )
+                      const aResponse = await Subscription.readMyEpochussy()
+                      assert.equal(aResponse, 0)
+                  })
+                  it("It should return 0 when no payment was rendered to the contract intially from multiple accounts", async () => {
+                      const { Subscription, mockV3Aggregator } = await loadFixture(
+                          deployContractAndPrice
+                      )
+                      const [account, account1, account2] = await ethers.getSigners()
+                      const aResponse = await Subscription.connect(account1).readMyEpochussy()
+                      assert.equal(aResponse, 0)
+                  })
+                  it("It should return false when no payment was rendered to the contract intially", async () => {
+                      const { Subscription, mockV3Aggregator } = await loadFixture(
+                          deployContractAndPrice
+                      )
+                      const aResponse = await Subscription.checkSubscription()
+                      assert.equal(aResponse, false)
+                  })
+                  it("It should return false when no payment was rendered to the contract intially from multiple accounts", async () => {
+                      const { Subscription, mockV3Aggregator } = await loadFixture(
+                          deployContractAndPrice
+                      )
+                      const [account, account1, account2] = await ethers.getSigners()
+                      const aResponse = await Subscription.connect(account1).checkSubscription()
+                      assert.equal(aResponse, false)
+                  })
+                  it("It should return false when no payment was rendered to the contract intially from non-self", async () => {
+                      const { Subscription, mockV3Aggregator } = await loadFixture(
+                          deployContractAndPrice
+                      )
+                      const [account, account1, account2] = await ethers.getSigners()
+                      const aResponse = await Subscription.connect(account1).checkASubscription(
+                          account2.address
+                      )
+                      assert.equal(aResponse, false)
+                  })
+                  it("It should return true when payment was rendered to the contract and we increment Epoch until the last period", async () => {
+                      const { Subscription, mockV3Aggregator } = await loadFixture(
+                          deployContractAndPrice
+                      )
+                      let pointTwo = ethers.utils.parseEther("0.2") // 2 cents
+                      const response = await Subscription.takePayment(deployer.address, 4, {
+                          value: pointTwo,
+                      })
+                      const epochTwo = await Subscription.updateEpoch()
+                      const epochThree = await Subscription.updateEpoch()
+                      const epochFour = await Subscription.updateEpoch()
+                      const epochFive = await Subscription.updateEpoch()
+                      //const epochCheck = await Subscription.readSubscribersEpoch(deployer.address)
+                      //assert.equal(epochCheck.toString(), 5) we are paid to the fifth period
+                      // iterate to the fifth period and assert a true / next iterate to 6 and assert a false
+                      const aResponse = await Subscription.checkSubscription()
+                      assert.equal(aResponse, true)
+                  })
+                  it("It should return false when payment was rendered to the contract intially but the epoch paid period is passed", async () => {
+                      const { Subscription, mockV3Aggregator } = await loadFixture(
+                          deployContractAndPrice
+                      )
+                      let pointTwo = ethers.utils.parseEther("0.2") // 2 cents
+                      const response = await Subscription.takePayment(deployer.address, 4, {
+                          value: pointTwo,
+                      })
+                      const epochTwo = await Subscription.updateEpoch()
+                      const epochThree = await Subscription.updateEpoch()
+                      const epochFour = await Subscription.updateEpoch()
+                      const epochFive = await Subscription.updateEpoch()
+                      const epochSix = await Subscription.updateEpoch()
+                      //const epochCheck = await Subscription.readSubscribersEpoch(deployer.address)
+                      //assert.equal(epochCheck.toString(), 5) we are paid to the fifth period
+                      // iterate to the fifth period and assert a true / next iterate to 6 and assert a false
+                      const aResponse = await Subscription.checkSubscription()
+                      assert.equal(aResponse, false)
+                  })
+                  it("It should return true when payment was rendered to the contract and the epoch period is incremented, non owner check", async () => {
+                      const { Subscription, mockV3Aggregator } = await loadFixture(
+                          deployContractAndPrice
+                      )
+                      const [account, account1, account2] = await ethers.getSigners()
+                      let pointTwo = ethers.utils.parseEther("0.2") // 2 cents
+                      const response = await Subscription.takePayment(account1.address, 4, {
+                          value: pointTwo,
+                      })
+                      const epochTwo = await Subscription.updateEpoch()
+                      const epochThree = await Subscription.updateEpoch()
+                      const epochFour = await Subscription.updateEpoch()
+                      const epochFive = await Subscription.updateEpoch()
+                      const aResponse = await Subscription.connect(account1).checkSubscription()
+                      assert.equal(aResponse, true)
+                  })
+                  it("It should return true when payment was rendered to the contract and the epoch period is incremented, non owner check", async () => {
+                      const { Subscription, mockV3Aggregator } = await loadFixture(
+                          deployContractAndPrice
+                      )
+                      const [account, account1, account2] = await ethers.getSigners()
+                      let pointTwo = ethers.utils.parseEther("0.2") // 2 cents
+                      const response = await Subscription.takePayment(account2.address, 4, {
+                          value: pointTwo,
+                      })
+                      const epochTwo = await Subscription.updateEpoch()
+                      const epochThree = await Subscription.updateEpoch()
+                      const epochFour = await Subscription.updateEpoch()
+                      const epochFive = await Subscription.updateEpoch()
+                      const aResponse = await Subscription.connect(account1).checkASubscription(
+                          account2.address
+                      )
+                      assert.equal(aResponse, true)
+                  })
+                  it("It should return false when payment was rendered to the contract intially but the epoch paid period is passed from non owner", async () => {
+                      const { Subscription, mockV3Aggregator } = await loadFixture(
+                          deployContractAndPrice
+                      )
+                      const [account, account1, account2] = await ethers.getSigners()
+                      let pointTwo = ethers.utils.parseEther("0.2") // 2 cents
+                      const response = await Subscription.takePayment(account1.address, 4, {
+                          value: pointTwo,
+                      })
+                      const epochTwo = await Subscription.updateEpoch()
+                      const epochThree = await Subscription.updateEpoch()
+                      const epochFour = await Subscription.updateEpoch()
+                      const epochFive = await Subscription.updateEpoch()
+                      const epochSix = await Subscription.updateEpoch()
+                      const aResponse = await Subscription.connect(account1).checkSubscription()
+                      assert.equal(aResponse, false)
+                  })
+                  it("It should return false when payment was rendered to the contract intially but the epoch paid period is passed from non owner, check someone else", async () => {
+                      const { Subscription, mockV3Aggregator } = await loadFixture(
+                          deployContractAndPrice
+                      )
+                      const [account, account1, account2] = await ethers.getSigners()
+                      let pointTwo = ethers.utils.parseEther("0.2") // 2 cents
+                      const response = await Subscription.takePayment(account2.address, 4, {
+                          value: pointTwo,
+                      })
+                      const epochTwo = await Subscription.updateEpoch()
+                      const epochThree = await Subscription.updateEpoch()
+                      const epochFour = await Subscription.updateEpoch()
+                      const epochFive = await Subscription.updateEpoch()
+                      const epochSix = await Subscription.updateEpoch()
+                      const aResponse = await Subscription.connect(account1).checkASubscription(
+                          account2.address
+                      )
+                      assert.equal(aResponse, false)
+                  })
+                  it("It should return true when the Epoch was incremented several times to epoch 5, then payment was rendered to the contract for 5 periods and the epoch period is incremented to 10, non owner check", async () => {
+                      const { Subscription, mockV3Aggregator } = await loadFixture(
+                          deployContractAndPrice
+                      )
+                      const [account, account1, account2] = await ethers.getSigners()
+                      const epochTwo = await Subscription.updateEpoch()
+                      const epochThree = await Subscription.updateEpoch()
+                      const epochFour = await Subscription.updateEpoch()
+                      const epochFive = await Subscription.updateEpoch()
+                      let pointTwo = ethers.utils.parseEther("0.25") // 2 cents
+                      const response = await Subscription.takePayment(account1.address, 5, {
+                          value: pointTwo,
+                      })
+                      const epochSix = await Subscription.updateEpoch()
+                      const epochSeven = await Subscription.updateEpoch()
+                      const epochEight = await Subscription.updateEpoch()
+                      const epochNine = await Subscription.updateEpoch()
+                      const epochTen = await Subscription.updateEpoch()
+                      const aResponse = await Subscription.connect(account1).checkSubscription()
+                      assert.equal(aResponse, true)
+                  })
+                  it("It should return true when the Epoch was incremented several times to epoch 5, then payment was rendered to the contract for 5 periods and the epoch period is incremented to 10, non owner check non self check", async () => {
+                      const { Subscription, mockV3Aggregator } = await loadFixture(
+                          deployContractAndPrice
+                      )
+                      const [account, account1, account2] = await ethers.getSigners()
+                      const epochTwo = await Subscription.updateEpoch()
+                      const epochThree = await Subscription.updateEpoch()
+                      const epochFour = await Subscription.updateEpoch()
+                      const epochFive = await Subscription.updateEpoch()
+                      let pointTwo = ethers.utils.parseEther("0.25") // 2 cents
+                      const response = await Subscription.takePayment(account1.address, 5, {
+                          value: pointTwo,
+                      })
+                      const epochSix = await Subscription.updateEpoch()
+                      const epochSeven = await Subscription.updateEpoch()
+                      const epochEight = await Subscription.updateEpoch()
+                      const epochNine = await Subscription.updateEpoch()
+                      const epochTen = await Subscription.updateEpoch()
+                      const aResponse = await Subscription.connect(account1).checkSubscription()
+                      assert.equal(aResponse, true)
+                  })
+                  it("It should return false when the Epoch was incremented several times to epoch 5, then payment was rendered to the contract for 5 periods and the epoch period is incremented to 11, non owner check", async () => {
+                      const { Subscription, mockV3Aggregator } = await loadFixture(
+                          deployContractAndPrice
+                      )
+                      const [account, account1, account2] = await ethers.getSigners()
+                      const epochTwo = await Subscription.updateEpoch()
+                      const epochThree = await Subscription.updateEpoch()
+                      const epochFour = await Subscription.updateEpoch()
+                      const epochFive = await Subscription.updateEpoch()
+                      let pointTwo = ethers.utils.parseEther("0.25") // 2 cents
+                      const response = await Subscription.takePayment(account1.address, 5, {
+                          value: pointTwo,
+                      })
+                      const epochSix = await Subscription.updateEpoch()
+                      const epochSeven = await Subscription.updateEpoch()
+                      const epochEight = await Subscription.updateEpoch()
+                      const epochNine = await Subscription.updateEpoch()
+                      const epochTen = await Subscription.updateEpoch()
+                      const epochEleven = await Subscription.updateEpoch()
+                      const aResponse = await Subscription.connect(account1).checkSubscription()
+                      assert.equal(aResponse, false)
+                  })
+                  it("It should return false when the Epoch was incremented several times to epoch 5, then payment was rendered to the contract for 5 periods and the epoch period is incremented to 11, non owner check non self check", async () => {
+                      const { Subscription, mockV3Aggregator } = await loadFixture(
+                          deployContractAndPrice
+                      )
+                      const [account, account1, account2] = await ethers.getSigners()
+                      const epochTwo = await Subscription.updateEpoch()
+                      const epochThree = await Subscription.updateEpoch()
+                      const epochFour = await Subscription.updateEpoch()
+                      const epochFive = await Subscription.updateEpoch()
+                      let pointTwo = ethers.utils.parseEther("0.25") // 2 cents
+                      const response = await Subscription.takePayment(account2.address, 5, {
+                          value: pointTwo,
+                      })
+                      const epochSix = await Subscription.updateEpoch()
+                      const epochSeven = await Subscription.updateEpoch()
+                      const epochEight = await Subscription.updateEpoch()
+                      const epochNine = await Subscription.updateEpoch()
+                      const epochTen = await Subscription.updateEpoch()
+                      const epochEleven = await Subscription.updateEpoch()
+                      const aResponse = await Subscription.connect(account1).checkASubscription(
+                          account2.address
+                      )
+                      assert.equal(aResponse, false)
                   })
               })
           })

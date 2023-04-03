@@ -33,10 +33,10 @@ contract Subscription {
         _;
     }
 
-    //epoch starts at 0
+    //epoch starts at 1
     constructor(int256 _initialSubPrice, address priceFeed) {
         i_owner = msg.sender;
-        epoch = 0;
+        epoch = 1;
         i_start = block.timestamp;
         usdPrice = _initialSubPrice;
         s_priceFeed = AggregatorV3Interface(priceFeed);
@@ -139,6 +139,24 @@ contract Subscription {
             }
         } else {
             if (epochPaid[msg.sender] >= epoch - 1) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    function checkASubscription(
+        address _recievooor
+    ) public view returns (bool) {
+        if (!lenient) {
+            if (epochPaid[_recievooor] >= epoch) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            if (epochPaid[_recievooor] >= epoch - 1) {
                 return true;
             } else {
                 return false;

@@ -4,10 +4,10 @@
 pragma solidity ^0.8.0;
 
 // Subscription Monthly Payment Contract
-// -> Contract is controlled by chainlink keepers
-// -> Monthly Epoch is incremented for eternity by gelato service or manually -> if manually, a delay in updating updateEpoch only allows customers to get more time for what they paid
+// -> Contract is controlled by chainlink keepers or an external gelato script that does the epoch incrementing for eternity
 // -> A check can be done on the delta of monthly epoch from month of origination
-// ->
+// -> The epoch paid logic / payment logic is explained in the function takePayment(),
+//    there is a lenient boolean, and a dynamic boolean to change the pricing and leniency of the payment terms
 
 // 2. Imports
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";

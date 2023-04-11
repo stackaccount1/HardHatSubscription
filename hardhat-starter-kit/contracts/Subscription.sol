@@ -105,6 +105,7 @@ contract Subscription is AutomationCompatibleInterface {
         epoch += 1;
     }
 
+    //Possibly Remove on Mainnet/live deployment
     function updateEpoch() public onlyOwner {
         epoch += 1;
     }

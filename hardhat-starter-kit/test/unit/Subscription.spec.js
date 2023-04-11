@@ -1,5 +1,5 @@
 const { network, deployments, ethers } = require("hardhat")
-const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers")
+const { loadFixture, time } = require("@nomicfoundation/hardhat-network-helpers")
 const { networkConfig, developmentChains } = require("../../helper-hardhat-config")
 const { numToBytes32 } = require("../../helper-functions")
 const { assert, expect } = require("chai")
@@ -36,6 +36,8 @@ const { assert, expect } = require("chai")
               deployer = aDeployer
               const DECIMALS = "18"
               const INITIAL_PRICE = "200000000000000000000"
+              const automationUpdateInterval = "2629800"
+
               oneThousandthETHER = ethers.utils.parseEther("0.0001")
               oneEthereumKoin = ethers.utils.parseEther("1")
 
@@ -47,7 +49,7 @@ const { assert, expect } = require("chai")
               subscriptionFactory = await ethers.getContractFactory("Subscription")
               Subscription = await subscriptionFactory
                   .connect(aDeployer)
-                  .deploy(10, mockV3Aggregator.address)
+                  .deploy(10, mockV3Aggregator.address, automationUpdateInterval)
 
               return { Subscription, mockV3Aggregator }
           }
@@ -346,6 +348,41 @@ const { assert, expect } = require("chai")
                           account2.address
                       )
                       assert.equal(aResponse, false)
+                  })
+              })
+              describe("Check Mock Timing Keepers Works Correctly", async function () {
+                  it("#checkUpkeep - should be able to call checkUpkeep", async function () {
+                      const { Subscription } = await loadFixture(deployContractAndPrice)
+                      const checkData = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(""))
+                      const { upkeepNeeded } = await Subscription.callStatic.checkUpkeep(checkData)
+                      assert.equal(upkeepNeeded, false)
+                  })
+                  it("#performUpkeep - should be able to call performUpkeep after time passes", async function () {
+                      const { Subscription } = await loadFixture(deployContractAndPrice)
+                      const startingCount = await Subscription.counter()
+                      const checkData = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(""))
+                      const interval = await Subscription.interval()
+                      await time.increase(interval.toNumber() + 1)
+                      await Subscription.performUpkeep(checkData)
+                      assert.equal(startingCount + 1, (await Subscription.counter()).toNumber())
+                  })
+                  it("failure - should not be able to call perform upkeep without the time passed interval", async function () {
+                      const { Subscription } = await loadFixture(deployContractAndPrice)
+                      const checkData = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(""))
+                      await expect(Subscription.performUpkeep(checkData)).to.be.revertedWith(
+                          "Time interval not met"
+                      )
+                  })
+                  it("#performUpkeep - should be able to call performUpkeep twice after time passes + Month + 1 second", async function () {
+                      const { Subscription } = await loadFixture(deployContractAndPrice)
+                      const startingCount = await Subscription.counter()
+                      const checkData = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(""))
+                      const interval = await Subscription.interval()
+                      await time.increase(interval.toNumber() + 1)
+                      await Subscription.performUpkeep(checkData)
+                      await time.increase(interval.toNumber())
+                      await Subscription.performUpkeep(checkData)
+                      assert.equal(startingCount + 2, (await Subscription.counter()).toNumber())
                   })
               })
           })

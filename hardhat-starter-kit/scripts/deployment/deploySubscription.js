@@ -4,7 +4,7 @@ const {
     networkConfig,
     developmentChains,
 } = require("../../helper-hardhat-config")
-
+//2629800 is a month in seconds
 async function deploySubscription(chainId) {
     let priceFeedAddress
 
@@ -21,7 +21,8 @@ async function deploySubscription(chainId) {
     }
 
     const subscriptionFactory = await ethers.getContractFactory("Subscription")
-    const Subscription = await subscriptionFactory.deploy(10, priceFeedAddress)
+    //2629800 is a month in seconds
+    const Subscription = await subscriptionFactory.deploy(10, priceFeedAddress, "2629800")
     console.log(`Subscription deployed to ${Subscription.address} on ${network.name}`)
 }
 

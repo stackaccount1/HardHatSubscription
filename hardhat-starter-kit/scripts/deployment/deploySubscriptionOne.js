@@ -21,7 +21,7 @@ async function deploySubscriptionOne(chainId) {
     }
 
     const subscriptionFactory = await ethers.getContractFactory("Subscription")
-    const Subscription = await subscriptionFactory.deploy(10, priceFeedAddress)
+    const Subscription = await subscriptionFactory.deploy(10, priceFeedAddress, "2629800")
     console.log(`Mock Contract deployed to ${priceFeedAddress}`)
     console.log(`Subscription deployed to ${Subscription.address} on ${network.name}`)
 }

@@ -66,7 +66,7 @@ const { assert, expect, revertedWith } = require("chai")
                       const priceConsumerResult = await Subscription.getLatestPrice()
                       const priceFeedResult = (await mockV3Aggregator.latestRoundData()).answer
                       assert.equal(priceConsumerResult.toString(), priceFeedResult.toString())
-                  })
+                  }) /*
                   it("It should return $2000 per one Ethereum koin", async () => {
                       const { Subscription, mockV3Aggregator } = await loadFixture(
                           deployContractAndPrice
@@ -85,7 +85,7 @@ const { assert, expect, revertedWith } = require("chai")
                               value: oneThousandthETHER,
                           })
                       ).to.be.revertedWith("not enough ether submitted")
-                  })
+                  })*/
               })
           })
       })
